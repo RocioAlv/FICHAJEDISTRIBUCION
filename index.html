@@ -185,13 +185,19 @@
     <div class="card">
       <div class="row">
         <div>
-          <label for="nombreInput">Nombre y apellido</label>
-          <input list="listaNombres" id="nombreInput" type="text" placeholder="Escribí tu nombre...">
-          <datalist id="listaNombres"></datalist>
+          <label for="areaSelect">Área</label>
+          <select id="areaSelect"></select>
         </div>
         <div>
           <label for="mesSelect">Mes</label>
           <select id="mesSelect"></select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label for="nombreInput">Nombre y apellido</label>
+          <input list="listaNombres" id="nombreInput" type="text" placeholder="Elegí tu área y escribí tu nombre...">
+          <datalist id="listaNombres"></datalist>
         </div>
       </div>
     </div>
@@ -235,7 +241,7 @@
 
 </main>
 
-<footer>Los datos se actualizan automáticamente desde la planilla de fichajes.</footer>
+<footer>Los datos se actualizan automáticamente desde la planilla de fichajes.<br><span id="fuenteDatos"></span></footer>
 
 <script>
 /* ============================================================
@@ -256,6 +262,42 @@ const FERIADOS_DEFAULT = [
 ];
 
 let DATA = { empleados: [], fichajes: [], feriados: [] };
+let FUENTE = 'demo';
+
+/* Mapeo manual de área por si el campo AREA del export no está
+   cargado para todos los empleados. Cada entrada es un nombre (o
+   nombre+apellido, en cualquier orden) que debe estar CONTENIDO en
+   el nombre completo del empleado para asignarle esa área. Si un
+   nombre no aparece acá, se usa el área que ya trae desde la planilla. */
+const AREA_OVERRIDES = {
+  'DISTRIBUCION': ['ludueña','acosta','riquelme','verdera','cabral','russo','distefano','mendez','segovia','saavedra','bellesi mauricio','torres'],
+  'ACARREO': ['randazzo'],
+  'ADMINISTRACION': ['micaela pasini','martin milagros','walter herrera','rocio alvarez','ricci mara'],
+  'VENTAS': ['feraboli damian','valiente guadalupe','arrieta','rocca','bellesi andrea','pereyra','rodriguez','vittorio'],
+  'ALMACENES': ['heredia','cappiello','schnap','catalan']
+};
+
+function normalizar_(s){
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+
+function areaDeEmpleado(nombre){
+  const tokens = normalizar_(nombre).split(/\s+/);
+  for (const area in AREA_OVERRIDES){
+    for (const entrada of AREA_OVERRIDES[area]){
+      const entTokens = normalizar_(entrada).split(/\s+/);
+      if (entTokens.every(t => tokens.includes(t))) return area;
+    }
+  }
+  return null; // sin match -> se usa el área original de la planilla
+}
+
+function aplicarOverridesDeArea(){
+  DATA.empleados.forEach(e => {
+    const area = areaDeEmpleado(e.nombre);
+    if (area) e.area = area;
+  });
+}
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -267,6 +309,8 @@ async function cargarDatos(){
       if (!json.error) {
         DATA = json;
         DATA.feriados = (json.feriados && json.feriados.length) ? json.feriados : FERIADOS_DEFAULT;
+        FUENTE = 'conectado';
+        aplicarOverridesDeArea();
         return init();
       }
     } catch (err) {
@@ -274,6 +318,8 @@ async function cargarDatos(){
     }
   }
   DATA = { empleados: DEMO_DATA.empleados, fichajes: DEMO_DATA.fichajes, feriados: FERIADOS_DEFAULT };
+  FUENTE = 'demo';
+  aplicarOverridesDeArea();
   init();
 }
 
@@ -295,10 +341,29 @@ function poblarSelects(){
     document.getElementById('mesSelectGeneral').value = meses[meses.length-1];
   }
 
+  const areas = Array.from(new Set(DATA.empleados.map(e => e.area).filter(Boolean))).sort();
+  document.getElementById('areaSelect').innerHTML =
+    '<option value="">Elegí un área...</option>' +
+    areas.map(a => `<option value="${a}">${a}</option>`).join('');
+
+  poblarNombresPorArea();
+
+  const fuenteEl = document.getElementById('fuenteDatos');
+  fuenteEl.textContent = FUENTE === 'conectado'
+    ? '🟢 Datos conectados en vivo a la planilla.'
+    : '🟡 Mostrando datos de ejemplo (no se pudo conectar a la planilla todavía).';
+}
+
+function poblarNombresPorArea(){
+  const area = document.getElementById('areaSelect').value;
   const datalist = document.getElementById('listaNombres');
-  datalist.innerHTML = DATA.empleados
-    .slice().sort((a,b)=>a.nombre.localeCompare(b.nombre))
-    .map(e => `<option value="${e.nombre}">`).join('');
+  const lista = DATA.empleados
+    .filter(e => !area || e.area === area)
+    .slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  datalist.innerHTML = lista.map(e => `<option value="${e.nombre}">`).join('');
+  document.getElementById('nombreInput').placeholder = area
+    ? 'Escribí tu nombre...'
+    : 'Elegí tu área y escribí tu nombre...';
 }
 
 function esLaborable(fechaStr){
@@ -329,17 +394,25 @@ function estadoDelDia(fecha, nombre){
 }
 
 function renderIndividual(){
+  const area = document.getElementById('areaSelect').value;
   const nombre = document.getElementById('nombreInput').value.trim();
   const mes = document.getElementById('mesSelect').value;
   const empty = document.getElementById('individualEmpty');
   const content = document.getElementById('individualContent');
 
-  const existe = DATA.empleados.some(e => e.nombre.toLowerCase() === nombre.toLowerCase());
+  if (!area){
+    empty.classList.remove('hidden');
+    content.classList.add('hidden');
+    empty.textContent = 'Elegí primero tu área.';
+    return;
+  }
+
+  const existe = DATA.empleados.some(e => e.nombre.toLowerCase() === nombre.toLowerCase() && e.area === area);
   if (!nombre || !existe || !mes){
     empty.classList.remove('hidden');
     content.classList.add('hidden');
     if (nombre && !existe){
-      empty.textContent = 'No encontramos ese nombre. Revisá cómo está escrito.';
+      empty.textContent = 'No encontramos ese nombre en esa área. Revisá cómo está escrito.';
     } else {
       empty.textContent = 'Elegí tu nombre para ver tu adherencia.';
     }
@@ -348,7 +421,7 @@ function renderIndividual(){
   empty.classList.add('hidden');
   content.classList.remove('hidden');
 
-  const nombreReal = DATA.empleados.find(e => e.nombre.toLowerCase() === nombre.toLowerCase()).nombre;
+  const nombreReal = DATA.empleados.find(e => e.nombre.toLowerCase() === nombre.toLowerCase() && e.area === area).nombre;
   const dias = diasDelMes(mes);
   const habiles = dias.filter(esLaborable);
   let completos = 0;
@@ -420,6 +493,11 @@ function initTabs(){
 function init(){
   poblarSelects();
   initTabs();
+  document.getElementById('areaSelect').addEventListener('change', () => {
+    document.getElementById('nombreInput').value = '';
+    poblarNombresPorArea();
+    renderIndividual();
+  });
   document.getElementById('nombreInput').addEventListener('input', renderIndividual);
   document.getElementById('mesSelect').addEventListener('change', renderIndividual);
   document.getElementById('mesSelectGeneral').addEventListener('change', renderGeneral);
