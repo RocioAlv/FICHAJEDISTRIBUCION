@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adherencia al Fichaje</title>
+<style>
+  :root{
+    --navy:#083A4F;
+    --gold:#A58D66;
+    --aqua:#C0D5D6;
+    --teal:#407E8C;
+    --sand:#E5E1DD;
+    --ausente:#AD4A3D;
+    --incompleto:#C79A4B;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Arial, sans-serif;
+    background:var(--sand);
+    color:var(--navy);
+  }
+  header{
+    background:var(--navy);
+    color:var(--sand);
+    padding:28px 24px 20px;
+    text-align:center;
+  }
+  header h1{
+    margin:0 0 4px;
+    font-size:1.6rem;
+    letter-spacing:.3px;
+  }
+  header p{
+    margin:0;
+    color:var(--aqua);
+    font-size:.95rem;
+  }
+  .tabs{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin:18px auto 0;
+    max-width:520px;
+    padding:0 16px;
+  }
+  .tab-btn{
+    flex:1;
+    padding:10px 12px;
+    border:2px solid var(--navy);
+    background:var(--white);
+    color:var(--navy);
+    border-radius:10px;
+    font-size:.92rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .tab-btn.active{
+    background:var(--navy);
+    color:var(--sand);
+  }
+  main{
+    max-width:640px;
+    margin:0 auto;
+    padding:20px 16px 60px;
+  }
+  .card{
+    background:var(--white);
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:18px;
+    box-shadow:0 2px 10px rgba(8,58,79,.08);
+  }
+  label{
+    display:block;
+    font-size:.82rem;
+    font-weight:600;
+    color:var(--teal);
+    margin-bottom:6px;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+  }
+  select, input[type=text]{
+    width:100%;
+    padding:11px 12px;
+    border:1.5px solid var(--aqua);
+    border-radius:8px;
+    font-size:1rem;
+    color:var(--navy);
+    background:var(--sand);
+  }
+  .row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .row > div{flex:1;min-width:150px;}
+  .stat-block{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    margin-top:16px;
+  }
+  .ring{
+    width:96px;height:96px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    font-weight:700;
+    font-size:1.15rem;
+    color:var(--navy);
+    background:conic-gradient(var(--teal) calc(var(--pct,0)*1%), var(--aqua) 0);
+    position:relative;
+  }
+  .ring::before{
+    content:'';
+    position:absolute;
+    width:72px;height:72px;
+    border-radius:50%;
+    background:var(--white);
+  }
+  .ring span{position:relative;}
+  .stat-text .num{font-size:1.4rem;font-weight:700;color:var(--navy);}
+  .stat-text .lbl{font-size:.85rem;color:var(--teal);}
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin:14px 0 4px;
+    font-size:.8rem;
+  }
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  .day-list{margin-top:10px;}
+  .day-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:9px 6px;
+    border-bottom:1px solid var(--sand);
+    font-size:.9rem;
+  }
+  .day-row:last-child{border-bottom:none;}
+  .day-left{display:flex;align-items:center;gap:10px;}
+  .status-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+  .horas{color:var(--teal);font-variant-numeric:tabular-nums;font-size:.85rem;}
+  .status-completo{background:var(--teal);}
+  .status-incompleto{background:var(--incompleto);}
+  .status-ausente{background:var(--ausente);}
+  .status-libre{background:var(--aqua);}
+  table{width:100%;border-collapse:collapse;font-size:.92rem;}
+  th, td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--sand);}
+  th{color:var(--teal);text-transform:uppercase;font-size:.75rem;letter-spacing:.4px;}
+  .pill{
+    display:inline-block;padding:3px 10px;border-radius:20px;
+    font-size:.78rem;font-weight:700;color:var(--white);
+  }
+  .empty{
+    text-align:center;color:var(--teal);padding:30px 10px;font-size:.92rem;
+  }
+  .hidden{display:none;}
+  footer{
+    text-align:center;color:var(--teal);font-size:.75rem;padding:10px 16px 30px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Adherencia al Fichaje</h1>
+  <p>Camioneros · consultá tu estado de fichaje o el compilado del área</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="individual">Mi fichaje</button>
+  <button class="tab-btn" data-tab="general">Vista general</button>
+</div>
+
+<main>
+
+  <!-- VISTA INDIVIDUAL -->
+  <section id="tab-individual">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label for="nombreInput">Nombre y apellido</label>
+          <input list="listaNombres" id="nombreInput" type="text" placeholder="Escribí tu nombre...">
+          <datalist id="listaNombres"></datalist>
+        </div>
+        <div>
+          <label for="mesSelect">Mes</label>
+          <select id="mesSelect"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="resumenCard">
+      <div class="empty" id="individualEmpty">Elegí tu nombre para ver tu adherencia.</div>
+      <div id="individualContent" class="hidden">
+        <div class="stat-block">
+          <div class="ring" id="ringPct" style="--pct:0"><span id="ringPctText">0%</span></div>
+          <div class="stat-text">
+            <div class="num" id="diasCompletos">0 / 0</div>
+            <div class="lbl">días con fichaje completo sobre días hábiles del mes</div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--teal)"></i>Completo</span>
+          <span><i class="dot" style="background:var(--incompleto)"></i>Incompleto</span>
+          <span><i class="dot" style="background:var(--ausente)"></i>Ausente</span>
+          <span><i class="dot" style="background:var(--aqua)"></i>No laborable</span>
+        </div>
+        <div class="day-list" id="dayList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISTA GENERAL -->
+  <section id="tab-general" class="hidden">
+    <div class="card">
+      <label for="mesSelectGeneral">Mes</label>
+      <select id="mesSelectGeneral"></select>
+    </div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Área</th><th>Empleados</th><th>Adherencia</th></tr>
+        </thead>
+        <tbody id="areaTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>Los datos se actualizan automáticamente desde la planilla de fichajes.</footer>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   Pegá acá la URL de tu Apps Script (".../exec"). Mientras esté
+   vacía, la página muestra datos de ejemplo (agosto 2026) para
+   que puedas previsualizar el diseño.
+============================================================ */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4w4kiAEUv7MT4zirV7ZW-6Fve6G0vkeKEWQl3wgeAE5uOiFZryySgnV92WqkuJP_9/exec";
+
+const DEMO_DATA = {"empleados": [{"nombre": "Sebastian Distefano", "area": "DISTRIBUCION"}, {"nombre": "Danilo Torres", "area": "DISTRIBUCION"}, {"nombre": "Alexis Russo", "area": "DISTRIBUCION"}, {"nombre": "Gaston Ludueña", "area": "DISTRIBUCION"}, {"nombre": "Mauricio Bellesi", "area": "DISTRIBUCION"}, {"nombre": "Leonardo Segovia", "area": "DISTRIBUCION"}, {"nombre": "Gaston Acosta", "area": "DISTRIBUCION"}, {"nombre": "Verdera David", "area": "DISTRIBUCION"}, {"nombre": "Jair Cabral", "area": "DISTRIBUCION"}, {"nombre": "Juan Riquelme", "area": "DISTRIBUCION"}, {"nombre": "Luciano Saavedra", "area": "DISTRIBUCION"}, {"nombre": "Pablo Mendez", "area": "DISTRIBUCION"}, {"nombre": "Randazzo Edgardo", "area": "ACARREO"}, {"nombre": "Emanuel Angel Catalan", "area": "#N/A"}, {"nombre": "Maximiliano Heredia", "area": "#N/A"}, {"nombre": "Guadalupe Soledad Valiente", "area": "#N/A"}, {"nombre": "Gustavo Arrieta", "area": "#N/A"}, {"nombre": "Walter Javier Herrera", "area": "#N/A"}, {"nombre": "Micaela Pasini", "area": "#N/A"}, {"nombre": "Milagros Martin", "area": "#N/A"}, {"nombre": "Federico Schnap", "area": "#N/A"}, {"nombre": "Rocio Alvarez", "area": "#N/A"}], "fichajes": [{"fecha": "2026-08-01", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:40", "salida": "13:33"}, {"fecha": "2026-08-01", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:30", "salida": "13:19"}, {"fecha": "2026-08-01", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "12:18"}, {"fecha": "2026-08-01", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:41", "salida": "13:05"}, {"fecha": "2026-08-01", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "13:58"}, {"fecha": "2026-08-01", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:08", "salida": "12:29"}, {"fecha": "2026-08-01", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:42", "salida": "12:42"}, {"fecha": "2026-08-01", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "09:53", "salida": "13:03"}, {"fecha": "2026-08-01", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "14:10"}, {"fecha": "2026-08-01", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:29", "salida": "13:03"}, {"fecha": "2026-08-01", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "12:19"}, {"fecha": "2026-08-01", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:24", "salida": "14:05"}, {"fecha": "2026-08-01", "nombre": "Randazzo Edgardo", "area": "ACARREO", "entrada": "03:30", "salida": "13:15"}, {"fecha": "2026-08-03", "nombre": "Randazzo Edgardo", "area": "ACARREO", "entrada": "01:22", "salida": "13:13"}, {"fecha": "2026-08-04", "nombre": "Randazzo Edgardo", "area": "ACARREO", "entrada": "01:19", "salida": "09:20"}, {"fecha": "2026-08-10", "nombre": "Randazzo Edgardo", "area": "ACARREO", "entrada": "03:04", "salida": "10:32"}, {"fecha": "2026-08-11", "nombre": "Randazzo Edgardo", "area": "ACARREO", "entrada": "03:27", "salida": "10:50"}, {"fecha": "2026-08-24", "nombre": "Randazzo Edgardo", "area": "ACARREO", "entrada": "01:52", "salida": "09:10"}, {"fecha": "2026-08-25", "nombre": "Randazzo Edgardo", "area": "ACARREO", "entrada": "03:22", "salida": "10:40"}, {"fecha": "2026-08-03", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "09:10", "salida": "16:02"}, {"fecha": "2026-08-04", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:36", "salida": "15:53"}, {"fecha": "2026-08-05", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:39", "salida": "16:11"}, {"fecha": "2026-08-06", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:39", "salida": "16:25"}, {"fecha": "2026-08-07", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "15:48", "salida": null}, {"fecha": "2026-08-08", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:38", "salida": "13:42"}, {"fecha": "2026-08-10", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:36", "salida": "16:23"}, {"fecha": "2026-08-11", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:47", "salida": "16:02"}, {"fecha": "2026-08-12", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:45", "salida": "16:18"}, {"fecha": "2026-08-13", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:46", "salida": "16:24"}, {"fecha": "2026-08-14", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:43", "salida": "16:17"}, {"fecha": "2026-08-15", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:40", "salida": "13:47"}, {"fecha": "2026-08-18", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:43", "salida": "16:14"}, {"fecha": "2026-08-19", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:37", "salida": "15:47"}, {"fecha": "2026-08-20", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:43", "salida": "16:08"}, {"fecha": "2026-08-21", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "16:07", "salida": null}, {"fecha": "2026-08-22", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:40", "salida": "13:39"}, {"fecha": "2026-08-24", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:35", "salida": "15:41"}, {"fecha": "2026-08-25", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:52", "salida": "15:58"}, {"fecha": "2026-08-03", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:01", "salida": "12:18"}, {"fecha": "2026-08-04", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:08", "salida": "12:57"}, {"fecha": "2026-08-05", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:24", "salida": "12:55"}, {"fecha": "2026-08-06", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:08", "salida": null}, {"fecha": "2026-08-07", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:05", "salida": "14:15"}, {"fecha": "2026-08-08", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:07", "salida": "13:00"}, {"fecha": "2026-08-10", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "08:36", "salida": "15:09"}, {"fecha": "2026-08-11", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:35", "salida": "13:58"}, {"fecha": "2026-08-12", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "14:11"}, {"fecha": "2026-08-13", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:26", "salida": "14:47"}, {"fecha": "2026-08-14", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:13", "salida": "14:41"}, {"fecha": "2026-08-15", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:42", "salida": "14:20"}, {"fecha": "2026-08-18", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "08:30", "salida": "15:46"}, {"fecha": "2026-08-19", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "14:07"}, {"fecha": "2026-08-20", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "13:35", "salida": null}, {"fecha": "2026-08-21", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "14:10"}, {"fecha": "2026-08-22", "nombre": "Danilo Torres", "area": "DISTRIBUCION", "entrada": "07:27", "salida": null}, {"fecha": "2026-08-03", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "13:50"}, {"fecha": "2026-08-04", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:13", "salida": "12:05"}, {"fecha": "2026-08-05", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "08:45", "salida": "15:06"}, {"fecha": "2026-08-06", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:02", "salida": "15:27"}, {"fecha": "2026-08-07", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:35", "salida": "13:58"}, {"fecha": "2026-08-08", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "08:39", "salida": "13:18"}, {"fecha": "2026-08-10", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "08:43", "salida": "14:47"}, {"fecha": "2026-08-11", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "08:53", "salida": null}, {"fecha": "2026-08-12", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:33", "salida": null}, {"fecha": "2026-08-13", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "13:40"}, {"fecha": "2026-08-14", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:54", "salida": "14:41"}, {"fecha": "2026-08-15", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:54", "salida": null}, {"fecha": "2026-08-18", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "13:06"}, {"fecha": "2026-08-19", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "14:17"}, {"fecha": "2026-08-20", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "13:47"}, {"fecha": "2026-08-21", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "08:46", "salida": null}, {"fecha": "2026-08-22", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "13:15"}, {"fecha": "2026-08-24", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "12:39"}, {"fecha": "2026-08-25", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:10", "salida": "13:26"}, {"fecha": "2026-08-04", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:30", "salida": "13:04"}, {"fecha": "2026-08-05", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:39", "salida": "13:16"}, {"fecha": "2026-08-06", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:26", "salida": "12:36"}, {"fecha": "2026-08-07", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:36", "salida": null}, {"fecha": "2026-08-08", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:39", "salida": null}, {"fecha": "2026-08-10", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "08:40", "salida": "15:12"}, {"fecha": "2026-08-11", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:43", "salida": "15:07"}, {"fecha": "2026-08-12", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:41", "salida": "13:59"}, {"fecha": "2026-08-13", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:47", "salida": "14:42"}, {"fecha": "2026-08-14", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:46", "salida": null}, {"fecha": "2026-08-15", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:50", "salida": null}, {"fecha": "2026-08-25", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:15", "salida": "13:34"}, {"fecha": "2026-08-03", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "08:32", "salida": "15:36"}, {"fecha": "2026-08-04", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:09", "salida": "12:56"}, {"fecha": "2026-08-05", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "13:46"}, {"fecha": "2026-08-06", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:21", "salida": "13:20"}, {"fecha": "2026-08-07", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "14:29"}, {"fecha": "2026-08-08", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "13:29"}, {"fecha": "2026-08-10", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "13:57"}, {"fecha": "2026-08-11", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "15:08"}, {"fecha": "2026-08-12", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:22", "salida": "13:54"}, {"fecha": "2026-08-13", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "14:47"}, {"fecha": "2026-08-14", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:14", "salida": "13:42"}, {"fecha": "2026-08-15", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:15", "salida": "12:57"}, {"fecha": "2026-08-18", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "08:30", "salida": "13:56"}, {"fecha": "2026-08-19", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "14:07"}, {"fecha": "2026-08-20", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "08:42", "salida": "15:54"}, {"fecha": "2026-08-21", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:03", "salida": "13:26"}, {"fecha": "2026-08-22", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "08:41", "salida": "13:35"}, {"fecha": "2026-08-24", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "13:11"}, {"fecha": "2026-08-25", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:15", "salida": "13:30"}, {"fecha": "2026-08-10", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:31", "salida": "14:04"}, {"fecha": "2026-08-11", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:14", "salida": "15:09"}, {"fecha": "2026-08-12", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:12", "salida": "15:37"}, {"fecha": "2026-08-13", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "16:12"}, {"fecha": "2026-08-14", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:11", "salida": "15:06"}, {"fecha": "2026-08-15", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "13:33"}, {"fecha": "2026-08-18", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "15:55"}, {"fecha": "2026-08-19", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "08:49", "salida": "15:30"}, {"fecha": "2026-08-20", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "16:36", "salida": null}, {"fecha": "2026-08-21", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:14", "salida": "13:46"}, {"fecha": "2026-08-22", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "13:06"}, {"fecha": "2026-08-24", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "13:15"}, {"fecha": "2026-08-25", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "14:54"}, {"fecha": "2026-08-03", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:35", "salida": null}, {"fecha": "2026-08-04", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:15", "salida": "12:55"}, {"fecha": "2026-08-05", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:39", "salida": "15:06"}, {"fecha": "2026-08-06", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:01", "salida": "15:26"}, {"fecha": "2026-08-07", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:35", "salida": "14:33"}, {"fecha": "2026-08-08", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:37", "salida": "13:18"}, {"fecha": "2026-08-10", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:37", "salida": "15:04"}, {"fecha": "2026-08-11", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:35", "salida": "13:02"}, {"fecha": "2026-08-12", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:35", "salida": null}, {"fecha": "2026-08-13", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:39", "salida": "15:58"}, {"fecha": "2026-08-14", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:39", "salida": "14:59"}, {"fecha": "2026-08-15", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:39", "salida": "13:13"}, {"fecha": "2026-08-18", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:32", "salida": "15:29"}, {"fecha": "2026-08-19", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:42", "salida": "15:28"}, {"fecha": "2026-08-21", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:25", "salida": "14:03"}, {"fecha": "2026-08-22", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:41", "salida": "13:36"}, {"fecha": "2026-08-24", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:35", "salida": "15:11"}, {"fecha": "2026-08-25", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:10", "salida": "13:46"}, {"fecha": "2026-08-03", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:35", "salida": "15:32"}, {"fecha": "2026-08-04", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:15", "salida": "12:55"}, {"fecha": "2026-08-05", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:39", "salida": "13:11"}, {"fecha": "2026-08-06", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:32", "salida": "12:28"}, {"fecha": "2026-08-07", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:36", "salida": null}, {"fecha": "2026-08-08", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:38", "salida": "13:12"}, {"fecha": "2026-08-10", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:36", "salida": "15:13"}, {"fecha": "2026-08-11", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:36", "salida": "15:09"}, {"fecha": "2026-08-12", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:36", "salida": "15:38"}, {"fecha": "2026-08-13", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "15:22"}, {"fecha": "2026-08-14", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:39", "salida": "14:58"}, {"fecha": "2026-08-15", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:43", "salida": "13:29"}, {"fecha": "2026-08-18", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "15:31"}, {"fecha": "2026-08-19", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:43", "salida": "15:28"}, {"fecha": "2026-08-20", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "13:44"}, {"fecha": "2026-08-21", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:26", "salida": "14:03"}, {"fecha": "2026-08-22", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "13:59"}, {"fecha": "2026-08-24", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:36", "salida": "15:11"}, {"fecha": "2026-08-25", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:10", "salida": "13:27"}, {"fecha": "2026-08-03", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "13:26"}, {"fecha": "2026-08-04", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "13:00"}, {"fecha": "2026-08-05", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "13:37"}, {"fecha": "2026-08-06", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:22", "salida": "12:59"}, {"fecha": "2026-08-07", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "14:41"}, {"fecha": "2026-08-08", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "13:33"}, {"fecha": "2026-08-10", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:30", "salida": "13:56"}, {"fecha": "2026-08-11", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "15:08"}, {"fecha": "2026-08-12", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "13:23"}, {"fecha": "2026-08-13", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:18", "salida": null}, {"fecha": "2026-08-14", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "13:42"}, {"fecha": "2026-08-15", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "13:17"}, {"fecha": "2026-08-18", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:21", "salida": "13:32"}, {"fecha": "2026-08-19", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "13:29"}, {"fecha": "2026-08-20", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "14:35"}, {"fecha": "2026-08-21", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "06:59", "salida": "13:47"}, {"fecha": "2026-08-22", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:21", "salida": "14:13"}, {"fecha": "2026-08-24", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "13:24"}, {"fecha": "2026-08-25", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "13:36"}, {"fecha": "2026-08-03", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "08:32", "salida": "13:50"}, {"fecha": "2026-08-04", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:14", "salida": "13:04"}, {"fecha": "2026-08-05", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:38", "salida": "13:22"}, {"fecha": "2026-08-06", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:32", "salida": "13:16"}, {"fecha": "2026-08-07", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:41", "salida": "13:16"}, {"fecha": "2026-08-08", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:39", "salida": "14:05"}, {"fecha": "2026-08-18", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "08:29", "salida": "15:36"}, {"fecha": "2026-08-19", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "14:18"}, {"fecha": "2026-08-20", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:21", "salida": "13:29"}, {"fecha": "2026-08-21", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:13", "salida": "14:17"}, {"fecha": "2026-08-22", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "13:39"}, {"fecha": "2026-08-24", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:25", "salida": "13:09"}, {"fecha": "2026-08-25", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:22", "salida": "13:47"}, {"fecha": "2026-08-03", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:04", "salida": "13:04"}, {"fecha": "2026-08-04", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:03", "salida": "13:15"}, {"fecha": "2026-08-05", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:26", "salida": "13:09"}, {"fecha": "2026-08-06", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "08:37", "salida": null}, {"fecha": "2026-08-07", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:04", "salida": "14:19"}, {"fecha": "2026-08-08", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "13:06"}, {"fecha": "2026-08-10", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:28", "salida": "14:00"}, {"fecha": "2026-08-11", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:13", "salida": "15:15"}, {"fecha": "2026-08-12", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "08:37", "salida": "15:45"}, {"fecha": "2026-08-14", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "14:44"}, {"fecha": "2026-08-15", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "13:33"}, {"fecha": "2026-08-18", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "15:41"}, {"fecha": "2026-08-19", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "08:35", "salida": "15:30"}, {"fecha": "2026-08-20", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "16:36", "salida": null}, {"fecha": "2026-08-21", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:13", "salida": "13:47"}, {"fecha": "2026-08-22", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "13:14"}, {"fecha": "2026-08-24", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "08:36", "salida": "15:11"}, {"fecha": "2026-08-25", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "14:54", "salida": null}, {"fecha": "2026-08-03", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "13:51"}, {"fecha": "2026-08-04", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:14", "salida": "13:07"}, {"fecha": "2026-08-05", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "13:46"}, {"fecha": "2026-08-06", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:22", "salida": "13:04"}, {"fecha": "2026-08-07", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "14:36"}, {"fecha": "2026-08-08", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:22", "salida": "13:18"}, {"fecha": "2026-08-10", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "13:58"}, {"fecha": "2026-08-11", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "12:13"}, {"fecha": "2026-08-12", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "13:41"}, {"fecha": "2026-08-13", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:22", "salida": "13:17"}, {"fecha": "2026-08-14", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "13:42"}, {"fecha": "2026-08-15", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:22", "salida": null}, {"fecha": "2026-08-18", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "14:10"}, {"fecha": "2026-08-19", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:19", "salida": "13:49"}, {"fecha": "2026-08-20", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "14:35"}, {"fecha": "2026-08-21", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:00", "salida": "13:38"}, {"fecha": "2026-08-22", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:22", "salida": "14:08"}, {"fecha": "2026-08-24", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "08:36", "salida": "15:09"}, {"fecha": "2026-08-25", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "13:49"}, {"fecha": "2026-08-03", "nombre": "Rocio Alvarez", "area": "#N/A", "entrada": "15:37", "salida": null}, {"fecha": "2026-08-26", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:37", "salida": "16:17"}, {"fecha": "2026-08-27", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:47", "salida": "16:40"}, {"fecha": "2026-08-28", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:42", "salida": "16:30"}, {"fecha": "2026-08-29", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:39", "salida": "13:51"}, {"fecha": "2026-08-31", "nombre": "Sebastian Distefano", "area": "DISTRIBUCION", "entrada": "08:51", "salida": "15:56"}, {"fecha": "2026-08-26", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:25", "salida": "14:33"}, {"fecha": "2026-08-27", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:30", "salida": "15:19"}, {"fecha": "2026-08-28", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "07:25", "salida": "13:32"}, {"fecha": "2026-08-29", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "08:42", "salida": "13:30"}, {"fecha": "2026-08-31", "nombre": "Alexis Russo", "area": "DISTRIBUCION", "entrada": "08:22", "salida": "14:59"}, {"fecha": "2026-08-26", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:34", "salida": "14:32"}, {"fecha": "2026-08-27", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:30", "salida": null}, {"fecha": "2026-08-28", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:28", "salida": "13:55"}, {"fecha": "2026-08-29", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:49", "salida": "13:30"}, {"fecha": "2026-08-31", "nombre": "Mauricio Bellesi", "area": "DISTRIBUCION", "entrada": "07:31", "salida": "14:35"}, {"fecha": "2026-08-26", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:25", "salida": "14:32"}, {"fecha": "2026-08-27", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:12", "salida": "14:45"}, {"fecha": "2026-08-28", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "13:04"}, {"fecha": "2026-08-29", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "13:40"}, {"fecha": "2026-08-31", "nombre": "Leonardo Segovia", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "14:10"}, {"fecha": "2026-08-26", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "08:34", "salida": "15:16"}, {"fecha": "2026-08-27", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "16:00"}, {"fecha": "2026-08-28", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:17", "salida": "13:55"}, {"fecha": "2026-08-29", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:11", "salida": "12:25"}, {"fecha": "2026-08-31", "nombre": "Gaston Acosta", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "14:35"}, {"fecha": "2026-08-26", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:42", "salida": "15:16"}, {"fecha": "2026-08-27", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:30", "salida": "15:19"}, {"fecha": "2026-08-28", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "07:32", "salida": "13:34"}, {"fecha": "2026-08-29", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:45", "salida": "13:26"}, {"fecha": "2026-08-31", "nombre": "Verdera David", "area": "DISTRIBUCION", "entrada": "08:37", "salida": "14:56"}, {"fecha": "2026-08-26", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:37", "salida": "15:17"}, {"fecha": "2026-08-27", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:13", "salida": "14:59"}, {"fecha": "2026-08-28", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "07:25", "salida": "13:32"}, {"fecha": "2026-08-29", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "13:15", "salida": null}, {"fecha": "2026-08-31", "nombre": "Jair Cabral", "area": "DISTRIBUCION", "entrada": "08:46", "salida": null}, {"fecha": "2026-08-26", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "14:32"}, {"fecha": "2026-08-27", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "14:41"}, {"fecha": "2026-08-28", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:18", "salida": "13:08"}, {"fecha": "2026-08-29", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:16", "salida": "13:52"}, {"fecha": "2026-08-31", "nombre": "Juan Riquelme", "area": "DISTRIBUCION", "entrada": "07:23", "salida": "14:07"}, {"fecha": "2026-08-26", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:26", "salida": "14:33"}, {"fecha": "2026-08-27", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "08:28", "salida": null}, {"fecha": "2026-08-28", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:28", "salida": "13:54"}, {"fecha": "2026-08-29", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "07:29", "salida": "13:39"}, {"fecha": "2026-08-31", "nombre": "Gaston Ludueña", "area": "DISTRIBUCION", "entrada": "14:24", "salida": null}, {"fecha": "2026-08-26", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "08:35", "salida": "15:19"}, {"fecha": "2026-08-27", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:07", "salida": "15:44"}, {"fecha": "2026-08-28", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:26", "salida": "14:08"}, {"fecha": "2026-08-29", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "07:22", "salida": "12:55"}, {"fecha": "2026-08-31", "nombre": "Luciano Saavedra", "area": "DISTRIBUCION", "entrada": "09:08", "salida": "15:00"}, {"fecha": "2026-08-26", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:25", "salida": "14:32"}, {"fecha": "2026-08-27", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:11", "salida": "14:41"}, {"fecha": "2026-08-28", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "13:01"}, {"fecha": "2026-08-29", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "07:20", "salida": "13:48"}, {"fecha": "2026-08-31", "nombre": "Pablo Mendez", "area": "DISTRIBUCION", "entrada": "14:09", "salida": "14:07"}]};
+
+const FERIADOS_DEFAULT = [
+  '2026-01-01','2026-02-16','2026-02-17','2026-03-23','2026-03-24',
+  '2026-04-02','2026-04-03','2026-05-01','2026-05-25','2026-06-15',
+  '2026-06-20','2026-07-09','2026-07-10','2026-08-17','2026-10-12',
+  '2026-11-23','2026-12-07','2026-12-08','2026-12-25'
+];
+
+let DATA = { empleados: [], fichajes: [], feriados: [] };
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+async function cargarDatos(){
+  if (APPS_SCRIPT_URL) {
+    try {
+      const res = await fetch(APPS_SCRIPT_URL);
+      const json = await res.json();
+      if (!json.error) {
+        DATA = json;
+        DATA.feriados = (json.feriados && json.feriados.length) ? json.feriados : FERIADOS_DEFAULT;
+        return init();
+      }
+    } catch (err) {
+      console.warn('No se pudo conectar al Apps Script, muestro datos de ejemplo.', err);
+    }
+  }
+  DATA = { empleados: DEMO_DATA.empleados, fichajes: DEMO_DATA.fichajes, feriados: FERIADOS_DEFAULT };
+  init();
+}
+
+function mesesDisponibles(){
+  const set = new Set(DATA.fichajes.map(f => f.fecha.slice(0,7)));
+  return Array.from(set).sort();
+}
+
+function poblarSelects(){
+  const meses = mesesDisponibles();
+  const opciones = meses.map(m => {
+    const [y, mm] = m.split('-');
+    return `<option value="${m}">${MESES[parseInt(mm,10)-1]} ${y}</option>`;
+  }).join('');
+  document.getElementById('mesSelect').innerHTML = opciones;
+  document.getElementById('mesSelectGeneral').innerHTML = opciones;
+  if (meses.length){
+    document.getElementById('mesSelect').value = meses[meses.length-1];
+    document.getElementById('mesSelectGeneral').value = meses[meses.length-1];
+  }
+
+  const datalist = document.getElementById('listaNombres');
+  datalist.innerHTML = DATA.empleados
+    .slice().sort((a,b)=>a.nombre.localeCompare(b.nombre))
+    .map(e => `<option value="${e.nombre}">`).join('');
+}
+
+function esLaborable(fechaStr){
+  const d = new Date(fechaStr + 'T00:00:00');
+  const dow = d.getDay(); // 0=domingo
+  if (dow === 0) return false;
+  if (DATA.feriados.includes(fechaStr)) return false;
+  return true;
+}
+
+function diasDelMes(mes){
+  const [y, m] = mes.split('-').map(Number);
+  const ultimo = new Date(y, m, 0).getDate();
+  const out = [];
+  for (let d=1; d<=ultimo; d++){
+    out.push(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  }
+  return out;
+}
+
+function estadoDelDia(fecha, nombre){
+  if (!esLaborable(fecha)) return 'libre';
+  const reg = DATA.fichajes.find(f => f.fecha === fecha && f.nombre === nombre);
+  if (!reg) return 'ausente';
+  if (reg.entrada && reg.salida) return 'completo';
+  if (reg.entrada || reg.salida) return 'incompleto';
+  return 'ausente';
+}
+
+function renderIndividual(){
+  const nombre = document.getElementById('nombreInput').value.trim();
+  const mes = document.getElementById('mesSelect').value;
+  const empty = document.getElementById('individualEmpty');
+  const content = document.getElementById('individualContent');
+
+  const existe = DATA.empleados.some(e => e.nombre.toLowerCase() === nombre.toLowerCase());
+  if (!nombre || !existe || !mes){
+    empty.classList.remove('hidden');
+    content.classList.add('hidden');
+    if (nombre && !existe){
+      empty.textContent = 'No encontramos ese nombre. Revisá cómo está escrito.';
+    } else {
+      empty.textContent = 'Elegí tu nombre para ver tu adherencia.';
+    }
+    return;
+  }
+  empty.classList.add('hidden');
+  content.classList.remove('hidden');
+
+  const nombreReal = DATA.empleados.find(e => e.nombre.toLowerCase() === nombre.toLowerCase()).nombre;
+  const dias = diasDelMes(mes);
+  const habiles = dias.filter(esLaborable);
+  let completos = 0;
+
+  const filas = dias.map(fecha => {
+    const estado = estadoDelDia(fecha, nombreReal);
+    if (estado === 'completo') completos++;
+    const reg = DATA.fichajes.find(f => f.fecha === fecha && f.nombre === nombreReal);
+    const horas = reg ? `${reg.entrada || '--:--'} · ${reg.salida || '--:--'}` : '';
+    const d = new Date(fecha + 'T00:00:00');
+    const diaTxt = d.toLocaleDateString('es-AR', { weekday:'short', day:'numeric' });
+    return `<div class="day-row">
+      <div class="day-left">
+        <span class="status-dot status-${estado}"></span>
+        <span>${diaTxt}</span>
+      </div>
+      <span class="horas">${estado==='libre' ? '' : horas}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dayList').innerHTML = filas;
+
+  const pct = habiles.length ? Math.round((completos/habiles.length)*100) : 0;
+  document.getElementById('ringPct').style.setProperty('--pct', pct);
+  document.getElementById('ringPctText').textContent = pct + '%';
+  document.getElementById('diasCompletos').textContent = `${completos} / ${habiles.length}`;
+}
+
+function renderGeneral(){
+  const mes = document.getElementById('mesSelectGeneral').value;
+  if (!mes) return;
+  const dias = diasDelMes(mes);
+  const habiles = dias.filter(esLaborable);
+
+  const porArea = {};
+  DATA.empleados.forEach(e => {
+    if (!porArea[e.area]) porArea[e.area] = { empleados: 0, sumaPct: 0 };
+    porArea[e.area].empleados++;
+    const completos = habiles.filter(f => estadoDelDia(f, e.nombre) === 'completo').length;
+    const pct = habiles.length ? (completos/habiles.length)*100 : 0;
+    porArea[e.area].sumaPct += pct;
+  });
+
+  const filas = Object.keys(porArea).sort().map(area => {
+    const info = porArea[area];
+    const prom = Math.round(info.sumaPct / info.empleados);
+    const color = prom >= 85 ? 'var(--teal)' : (prom >= 60 ? 'var(--incompleto)' : 'var(--ausente)');
+    return `<tr>
+      <td>${area}</td>
+      <td>${info.empleados}</td>
+      <td><span class="pill" style="background:${color}">${prom}%</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('areaTableBody').innerHTML = filas || '<tr><td colspan="3">Sin datos</td></tr>';
+}
+
+function initTabs(){
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-individual').classList.toggle('hidden', btn.dataset.tab !== 'individual');
+      document.getElementById('tab-general').classList.toggle('hidden', btn.dataset.tab !== 'general');
+    });
+  });
+}
+
+function init(){
+  poblarSelects();
+  initTabs();
+  document.getElementById('nombreInput').addEventListener('input', renderIndividual);
+  document.getElementById('mesSelect').addEventListener('change', renderIndividual);
+  document.getElementById('mesSelectGeneral').addEventListener('change', renderGeneral);
+  renderIndividual();
+  renderGeneral();
+}
+
+cargarDatos();
+</script>
+</body>
+</html>
