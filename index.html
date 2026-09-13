@@ -133,6 +133,23 @@
   }
   .legend span{display:flex;align-items:center;gap:6px;}
   .dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  .mini-stats{
+    display:flex;
+    gap:10px;
+    margin:16px 0 4px;
+  }
+  .mini-stat{
+    flex:1;
+    text-align:center;
+    padding:10px 6px;
+    border-radius:10px;
+    background:var(--sand);
+  }
+  .mini-stat .n{font-size:1.25rem;font-weight:700;}
+  .mini-stat .t{font-size:.75rem;color:var(--teal);margin-top:2px;}
+  .mini-stat.completo .n{color:var(--teal);}
+  .mini-stat.incompleto .n{color:var(--incompleto);}
+  .mini-stat.ausente .n{color:var(--ausente);}
   .day-list{margin-top:10px;}
   .day-row{
     display:flex;
@@ -212,12 +229,7 @@
             <div class="lbl">días con fichaje completo sobre días hábiles del mes</div>
           </div>
         </div>
-        <div class="legend">
-          <span><i class="dot" style="background:var(--teal)"></i>Completo</span>
-          <span><i class="dot" style="background:var(--incompleto)"></i>Incompleto</span>
-          <span><i class="dot" style="background:var(--ausente)"></i>Ausente</span>
-          <span><i class="dot" style="background:var(--aqua)"></i>No laborable</span>
-        </div>
+        <div class="mini-stats" id="miniStats"></div>
         <div class="day-list" id="dayList"></div>
       </div>
     </div>
@@ -424,11 +436,15 @@ function renderIndividual(){
   const nombreReal = DATA.empleados.find(e => e.nombre.toLowerCase() === nombre.toLowerCase() && e.area === area).nombre;
   const dias = diasDelMes(mes);
   const habiles = dias.filter(esLaborable);
-  let completos = 0;
+  let completos = 0, incompletos = 0, noFicho = 0;
 
-  const filas = dias.map(fecha => {
+  const ETIQUETAS = { completo: 'Completo', incompleto: 'Incompleto', ausente: 'No fichó' };
+
+  const filas = habiles.map(fecha => {
     const estado = estadoDelDia(fecha, nombreReal);
     if (estado === 'completo') completos++;
+    else if (estado === 'incompleto') incompletos++;
+    else if (estado === 'ausente') noFicho++;
     const reg = DATA.fichajes.find(f => f.fecha === fecha && f.nombre === nombreReal);
     const horas = reg ? `${reg.entrada || '--:--'} · ${reg.salida || '--:--'}` : '';
     const d = new Date(fecha + 'T00:00:00');
@@ -437,12 +453,18 @@ function renderIndividual(){
       <div class="day-left">
         <span class="status-dot status-${estado}"></span>
         <span>${diaTxt}</span>
+        <span class="horas" style="margin-left:6px;color:var(--navy);opacity:.6">${ETIQUETAS[estado]}</span>
       </div>
-      <span class="horas">${estado==='libre' ? '' : horas}</span>
+      <span class="horas">${horas}</span>
     </div>`;
   }).join('');
 
   document.getElementById('dayList').innerHTML = filas;
+  document.getElementById('miniStats').innerHTML = `
+    <div class="mini-stat completo"><div class="n">${completos}</div><div class="t">Completos</div></div>
+    <div class="mini-stat incompleto"><div class="n">${incompletos}</div><div class="t">Incompletos</div></div>
+    <div class="mini-stat ausente"><div class="n">${noFicho}</div><div class="t">No fichó</div></div>
+  `;
 
   const pct = habiles.length ? Math.round((completos/habiles.length)*100) : 0;
   document.getElementById('ringPct').style.setProperty('--pct', pct);
