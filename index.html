@@ -181,6 +181,16 @@
   footer{
     text-align:center;color:var(--teal);font-size:.75rem;padding:10px 16px 30px;
   }
+  .refrescar-btn{
+    background:none;
+    border:none;
+    color:var(--teal);
+    text-decoration:underline;
+    font-size:.75rem;
+    cursor:pointer;
+    padding:0;
+    margin-top:4px;
+  }
 </style>
 </head>
 <body>
@@ -253,7 +263,11 @@
 
 </main>
 
-<footer>Los datos se actualizan automáticamente desde la planilla de fichajes.<br><span id="fuenteDatos"></span></footer>
+<footer>
+  Los datos se actualizan automáticamente desde la planilla de fichajes.<br>
+  <span id="fuenteDatos"></span><br>
+  <button class="refrescar-btn" id="btnRefrescar">Actualizar datos ahora</button>
+</footer>
 
 <script>
 /* ============================================================
@@ -262,9 +276,11 @@
    vacía, la página muestra datos de ejemplo (agosto 2026) para
    que puedas previsualizar el diseño.
 
-   IMPORTANTE: este HTML ya pide los datos MES POR MES (no toda
-   la historia junta), para que la carga sea rápida. Necesita la
-   versión optimizada del Apps Script (panel-fichaje-appscript.gs).
+   IMPORTANTE: este HTML pide los datos en UN SOLO viaje al
+   servidor para la pantalla inicial (metadata + fichajes del
+   último mes vienen juntos), y el resto de los meses se piden
+   mes por mes, a medida que se necesitan. Necesita la versión 3
+   del Apps Script (panel-fichaje-appscript.gs).
 ============================================================ */
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnuHzGXmam9CiFyaKNPnpWuo-KPhHUuDwrkdMhSVsSlLbdrvf6KSPMplDk-LwNGNPR/exec";
 
@@ -294,8 +310,14 @@ const AREA_OVERRIDES = {
   'ALMACENES': ['heredia','cappiello','schnap','catalan']
 };
 
+// Recorta espacios y colapsa espacios dobles, igual que en el backend,
+// para que la comparación de nombres nunca falle por un espacio de más.
+function limpiarNombre_(s){
+  return String(s).replace(/\s+/g,' ').trim();
+}
+
 function normalizar_(s){
-  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  return limpiarNombre_(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 }
 
 function areaDeEmpleado(nombre){
@@ -311,6 +333,7 @@ function areaDeEmpleado(nombre){
 
 function aplicarOverridesDeArea(){
   DATA.empleados.forEach(e => {
+    e.nombre = limpiarNombre_(e.nombre);
     const area = areaDeEmpleado(e.nombre);
     if (area) e.area = area;
   });
@@ -323,8 +346,10 @@ async function fetchJSON_(url){
   return res.json();
 }
 
-/* Carga liviana: solo empleados + meses disponibles + feriados.
-   NO trae los fichajes todavía — esos se piden mes por mes. */
+/* Carga la metadata (empleados + meses + feriados). Desde la v3 del
+   Apps Script, esta MISMA respuesta ya trae adentro los fichajes del
+   último mes disponible (meta.fichajesUltimoMes), así que la primera
+   pantalla se pinta con un solo viaje al servidor en vez de dos. */
 async function cargarDatos(){
   if (APPS_SCRIPT_URL) {
     try {
@@ -335,6 +360,9 @@ async function cargarDatos(){
         DATA.feriados = (meta.feriados && meta.feriados.length) ? meta.feriados : FERIADOS_DEFAULT;
         FUENTE = 'conectado';
         aplicarOverridesDeArea();
+        if (meta.ultimoMes && meta.fichajesUltimoMes) {
+          fichajesCache[meta.ultimoMes] = meta.fichajesUltimoMes.map(normalizarFichaje_);
+        }
         return init();
       }
     } catch (err) {
@@ -346,6 +374,7 @@ async function cargarDatos(){
   DATA.feriados = FERIADOS_DEFAULT;
   fichajesCache = {};
   DEMO_DATA.fichajes.forEach(f => {
+    f = normalizarFichaje_(f);
     const m = f.fecha.slice(0,7);
     if (!fichajesCache[m]) fichajesCache[m] = [];
     fichajesCache[m].push(f);
@@ -356,14 +385,21 @@ async function cargarDatos(){
   init();
 }
 
+// Asegura que el nombre de cada fichaje esté limpio de espacios de
+// más, igual que el nombre de la lista de empleados, para que
+// siempre puedan compararse con === sin fallar.
+function normalizarFichaje_(f){
+  return Object.assign({}, f, { nombre: limpiarNombre_(f.nombre) });
+}
+
 /* Trae los fichajes de un mes puntual — de la caché local si ya se
-   pidió antes, o del Apps Script (que a su vez cachea 15 minutos). */
+   pidió antes, o del Apps Script (que a su vez cachea varias horas). */
 async function obtenerFichajesDeMes(mes){
   if (fichajesCache[mes]) return fichajesCache[mes];
   if (FUENTE !== 'conectado') return [];
   try {
     const json = await fetchJSON_(APPS_SCRIPT_URL + '?mes=' + encodeURIComponent(mes));
-    const arr = (json && json.fichajes) ? json.fichajes : [];
+    const arr = (json && json.fichajes) ? json.fichajes.map(normalizarFichaje_) : [];
     fichajesCache[mes] = arr;
     return arr;
   } catch (err) {
@@ -439,7 +475,7 @@ function estadoDelDia(fecha, nombre, fichajesMes){
 
 async function renderIndividual(){
   const area = document.getElementById('areaSelect').value;
-  const nombre = document.getElementById('nombreInput').value.trim();
+  const nombre = limpiarNombre_(document.getElementById('nombreInput').value);
   const mes = document.getElementById('mesSelect').value;
   const empty = document.getElementById('individualEmpty');
   const content = document.getElementById('individualContent');
@@ -470,7 +506,7 @@ async function renderIndividual(){
   const fichajesMes = await obtenerFichajesDeMes(mes);
 
   // por si cambiaron de nombre/mes mientras cargaba, revalidamos antes de pintar
-  if (document.getElementById('mesSelect').value !== mes || document.getElementById('nombreInput').value.trim() !== nombre) return;
+  if (document.getElementById('mesSelect').value !== mes || limpiarNombre_(document.getElementById('nombreInput').value) !== nombre) return;
 
   empty.classList.add('hidden');
   content.classList.remove('hidden');
@@ -561,9 +597,31 @@ function initTabs(){
   });
 }
 
+function initRefrescar(){
+  const btn = document.getElementById('btnRefrescar');
+  btn.addEventListener('click', async () => {
+    btn.textContent = 'Actualizando...';
+    btn.disabled = true;
+    fichajesCache = {};
+    if (APPS_SCRIPT_URL) {
+      try {
+        await fetchJSON_(APPS_SCRIPT_URL + '?refrescar=1');
+        const mesSel = document.getElementById('mesSelect').value;
+        const mesGenSel = document.getElementById('mesSelectGeneral').value;
+        if (mesSel) await fetchJSON_(APPS_SCRIPT_URL + '?mes=' + encodeURIComponent(mesSel) + '&refrescar=1');
+        if (mesGenSel && mesGenSel !== mesSel) await fetchJSON_(APPS_SCRIPT_URL + '?mes=' + encodeURIComponent(mesGenSel) + '&refrescar=1');
+      } catch (err) { console.warn('No se pudo refrescar', err); }
+    }
+    await cargarDatos();
+    btn.textContent = 'Actualizar datos ahora';
+    btn.disabled = false;
+  });
+}
+
 function init(){
   poblarSelects();
   initTabs();
+  initRefrescar();
   document.getElementById('areaSelect').addEventListener('change', () => {
     document.getElementById('nombreInput').value = '';
     poblarNombresPorArea();
