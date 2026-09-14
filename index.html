@@ -261,6 +261,10 @@
    Pegá acá la URL de tu Apps Script (".../exec"). Mientras esté
    vacía, la página muestra datos de ejemplo (agosto 2026) para
    que puedas previsualizar el diseño.
+
+   IMPORTANTE: este HTML ya pide los datos MES POR MES (no toda
+   la historia junta), para que la carga sea rápida. Necesita la
+   versión optimizada del Apps Script (panel-fichaje-appscript.gs).
 ============================================================ */
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnuHzGXmam9CiFyaKNPnpWuo-KPhHUuDwrkdMhSVsSlLbdrvf6KSPMplDk-LwNGNPR/exec";
 
@@ -273,8 +277,9 @@ const FERIADOS_DEFAULT = [
   '2026-11-23','2026-12-07','2026-12-08','2026-12-25'
 ];
 
-let DATA = { empleados: [], fichajes: [], feriados: [] };
+let DATA = { empleados: [], meses: [], feriados: [] };
 let FUENTE = 'demo';
+let fichajesCache = {}; // mes (YYYY-MM) -> array de fichajes de ese mes, ya sea de la API o del demo
 
 /* Mapeo manual de área por si el campo AREA del export no está
    cargado para todos los empleados. Cada entrada es un nombre (o
@@ -313,14 +318,21 @@ function aplicarOverridesDeArea(){
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+async function fetchJSON_(url){
+  const res = await fetch(url);
+  return res.json();
+}
+
+/* Carga liviana: solo empleados + meses disponibles + feriados.
+   NO trae los fichajes todavía — esos se piden mes por mes. */
 async function cargarDatos(){
   if (APPS_SCRIPT_URL) {
     try {
-      const res = await fetch(APPS_SCRIPT_URL);
-      const json = await res.json();
-      if (!json.error) {
-        DATA = json;
-        DATA.feriados = (json.feriados && json.feriados.length) ? json.feriados : FERIADOS_DEFAULT;
+      const meta = await fetchJSON_(APPS_SCRIPT_URL);
+      if (!meta.error) {
+        DATA.empleados = meta.empleados || [];
+        DATA.meses = meta.meses || [];
+        DATA.feriados = (meta.feriados && meta.feriados.length) ? meta.feriados : FERIADOS_DEFAULT;
         FUENTE = 'conectado';
         aplicarOverridesDeArea();
         return init();
@@ -329,19 +341,39 @@ async function cargarDatos(){
       console.warn('No se pudo conectar al Apps Script, muestro datos de ejemplo.', err);
     }
   }
-  DATA = { empleados: DEMO_DATA.empleados, fichajes: DEMO_DATA.fichajes, feriados: FERIADOS_DEFAULT };
+  // ---- Fallback demo (todo local, sin fetch) ----
+  DATA.empleados = DEMO_DATA.empleados;
+  DATA.feriados = FERIADOS_DEFAULT;
+  fichajesCache = {};
+  DEMO_DATA.fichajes.forEach(f => {
+    const m = f.fecha.slice(0,7);
+    if (!fichajesCache[m]) fichajesCache[m] = [];
+    fichajesCache[m].push(f);
+  });
+  DATA.meses = Object.keys(fichajesCache).sort();
   FUENTE = 'demo';
   aplicarOverridesDeArea();
   init();
 }
 
-function mesesDisponibles(){
-  const set = new Set(DATA.fichajes.map(f => f.fecha.slice(0,7)));
-  return Array.from(set).sort();
+/* Trae los fichajes de un mes puntual — de la caché local si ya se
+   pidió antes, o del Apps Script (que a su vez cachea 15 minutos). */
+async function obtenerFichajesDeMes(mes){
+  if (fichajesCache[mes]) return fichajesCache[mes];
+  if (FUENTE !== 'conectado') return [];
+  try {
+    const json = await fetchJSON_(APPS_SCRIPT_URL + '?mes=' + encodeURIComponent(mes));
+    const arr = (json && json.fichajes) ? json.fichajes : [];
+    fichajesCache[mes] = arr;
+    return arr;
+  } catch (err) {
+    console.warn('No se pudo cargar el mes', mes, err);
+    return [];
+  }
 }
 
 function poblarSelects(){
-  const meses = mesesDisponibles();
+  const meses = DATA.meses.slice().sort();
   const opciones = meses.map(m => {
     const [y, mm] = m.split('-');
     return `<option value="${m}">${MESES[parseInt(mm,10)-1]} ${y}</option>`;
@@ -396,16 +428,16 @@ function diasDelMes(mes){
   return out;
 }
 
-function estadoDelDia(fecha, nombre){
+function estadoDelDia(fecha, nombre, fichajesMes){
   if (!esLaborable(fecha)) return 'libre';
-  const reg = DATA.fichajes.find(f => f.fecha === fecha && f.nombre === nombre);
+  const reg = fichajesMes.find(f => f.fecha === fecha && f.nombre === nombre);
   if (!reg) return 'ausente';
   if (reg.entrada && reg.salida) return 'completo';
   if (reg.entrada || reg.salida) return 'incompleto';
   return 'ausente';
 }
 
-function renderIndividual(){
+async function renderIndividual(){
   const area = document.getElementById('areaSelect').value;
   const nombre = document.getElementById('nombreInput').value.trim();
   const mes = document.getElementById('mesSelect').value;
@@ -430,6 +462,16 @@ function renderIndividual(){
     }
     return;
   }
+
+  empty.classList.remove('hidden');
+  empty.textContent = 'Cargando...';
+  content.classList.add('hidden');
+
+  const fichajesMes = await obtenerFichajesDeMes(mes);
+
+  // por si cambiaron de nombre/mes mientras cargaba, revalidamos antes de pintar
+  if (document.getElementById('mesSelect').value !== mes || document.getElementById('nombreInput').value.trim() !== nombre) return;
+
   empty.classList.add('hidden');
   content.classList.remove('hidden');
 
@@ -441,11 +483,11 @@ function renderIndividual(){
   const ETIQUETAS = { completo: 'Completo', incompleto: 'Incompleto', ausente: 'No fichó' };
 
   const filas = habiles.map(fecha => {
-    const estado = estadoDelDia(fecha, nombreReal);
+    const estado = estadoDelDia(fecha, nombreReal, fichajesMes);
     if (estado === 'completo') completos++;
     else if (estado === 'incompleto') incompletos++;
     else if (estado === 'ausente') noFicho++;
-    const reg = DATA.fichajes.find(f => f.fecha === fecha && f.nombre === nombreReal);
+    const reg = fichajesMes.find(f => f.fecha === fecha && f.nombre === nombreReal);
     const horas = reg ? `${reg.entrada || '--:--'} · ${reg.salida || '--:--'}` : '';
     const d = new Date(fecha + 'T00:00:00');
     const diaTxt = d.toLocaleDateString('es-AR', { weekday:'short', day:'numeric' });
@@ -472,9 +514,16 @@ function renderIndividual(){
   document.getElementById('diasCompletos').textContent = `${completos} / ${habiles.length}`;
 }
 
-function renderGeneral(){
+async function renderGeneral(){
   const mes = document.getElementById('mesSelectGeneral').value;
   if (!mes) return;
+
+  const tbody = document.getElementById('areaTableBody');
+  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--teal);padding:20px">Cargando...</td></tr>';
+
+  const fichajesMes = await obtenerFichajesDeMes(mes);
+  if (document.getElementById('mesSelectGeneral').value !== mes) return; // cambiaron el mes mientras cargaba
+
   const dias = diasDelMes(mes);
   const habiles = dias.filter(esLaborable);
 
@@ -482,7 +531,7 @@ function renderGeneral(){
   DATA.empleados.forEach(e => {
     if (!porArea[e.area]) porArea[e.area] = { empleados: 0, sumaPct: 0 };
     porArea[e.area].empleados++;
-    const completos = habiles.filter(f => estadoDelDia(f, e.nombre) === 'completo').length;
+    const completos = habiles.filter(f => estadoDelDia(f, e.nombre, fichajesMes) === 'completo').length;
     const pct = habiles.length ? (completos/habiles.length)*100 : 0;
     porArea[e.area].sumaPct += pct;
   });
@@ -498,7 +547,7 @@ function renderGeneral(){
     </tr>`;
   }).join('');
 
-  document.getElementById('areaTableBody').innerHTML = filas || '<tr><td colspan="3">Sin datos</td></tr>';
+  tbody.innerHTML = filas || '<tr><td colspan="3">Sin datos</td></tr>';
 }
 
 function initTabs(){
